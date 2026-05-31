@@ -32,30 +32,31 @@ Default OpenD connection values:
 
 - host: `127.0.0.1`
 - port: `11111`
-- env: `paper` maps to Moomoo `SIMULATE`; `real` maps to Moomoo `REAL`
+- account: `paper` maps to Moomoo `SIMULATE`; `live` maps to Moomoo `REAL`
 
 ## CLI
 
 Run from the repo:
 
 ```bash
-python3.11 -m alpha_option_skill --broker moomoo --env real positions
-python3.11 -m alpha_option_skill --broker moomoo --env real account
-python3.11 -m alpha_option_skill --broker moomoo --env real orders
-python3.11 -m alpha_option_skill --broker moomoo option-quote US.AAPL240621C200000
-python3.11 -m alpha_option_skill --broker moomoo option-chain US.AAPL
+python3.11 -m alpha_option_skill positions --broker moomoo --account live
+python3.11 -m alpha_option_skill account --broker moomoo --account live
+python3.11 -m alpha_option_skill orders --broker moomoo --account live
+python3.11 -m alpha_option_skill quote --broker moomoo --type option --contract US.AAPL240621C200000
+python3.11 -m alpha_option_skill chain --broker moomoo --type option --symbol US.AAPL
 ```
 
-`--env` chooses the broker account environment. Use `--env paper` for Moomoo paper trading, and `--env real` for the real account.
+`--account` chooses the broker account environment. Use `--account paper` for Moomoo paper trading, and `--account live` for the live account.
 
 Dry-run option order planning:
 
 ```bash
-python3.11 -m alpha_option_skill --broker moomoo --env paper place-option-order \
+python3.11 -m alpha_option_skill order --broker moomoo --account paper \
+  --type option \
   --dry-run \
   --symbol AAPL \
-  --contract-code US.AAPL240621C200000 \
-  --side BUY \
+  --contract US.AAPL240621C200000 \
+  --side buy \
   --qty 1 \
   --limit 1.25
 ```
@@ -63,11 +64,12 @@ python3.11 -m alpha_option_skill --broker moomoo --env paper place-option-order 
 Submitted paper orders use `--submit`:
 
 ```bash
-python3.11 -m alpha_option_skill --broker moomoo --env paper place-option-order \
+python3.11 -m alpha_option_skill order --broker moomoo --account paper \
+  --type option \
   --submit \
   --symbol AAPL \
-  --contract-code US.AAPL240621C200000 \
-  --side BUY \
+  --contract US.AAPL240621C200000 \
+  --side buy \
   --qty 1 \
   --limit 1.25
 ```
@@ -75,11 +77,12 @@ python3.11 -m alpha_option_skill --broker moomoo --env paper place-option-order 
 Submitted real orders require both `--submit` and `--confirm-live-order`.
 
 ```bash
-python3.11 -m alpha_option_skill --broker moomoo --env real place-option-order \
+python3.11 -m alpha_option_skill order --broker moomoo --account live \
+  --type option \
   --submit \
   --symbol AAPL \
-  --contract-code US.AAPL240621C200000 \
-  --side BUY \
+  --contract US.AAPL240621C200000 \
+  --side buy \
   --qty 1 \
   --limit 1.25 \
   --confirm-live-order

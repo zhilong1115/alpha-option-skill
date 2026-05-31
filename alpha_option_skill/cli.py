@@ -10,56 +10,60 @@ import logging
 from dataclasses import asdict, is_dataclass
 from typing import Any, Sequence
 
-from alpha_option_skill.brokers import MoomooConfig, MoomooOptionsBroker, OptionOrder
+from alpha_option_skill.brokers import (
+    MoomooConfig,
+    MoomooOptionsBroker,
+    OptionOrder,
+    UnsupportedOperation,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="alpha-option")
-    parser.add_argument("--broker", default="moomoo", choices=["moomoo"])
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=11111)
-    parser.add_argument("--market", default="US")
-    parser.add_argument(
-        "--env",
-        default="paper",
-        choices=["paper", "simulate", "real"],
-        help="Broker account environment: paper/simulate uses Moomoo SIMULATE; real uses REAL.",
-    )
-    parser.add_argument("--security-firm")
-    parser.add_argument("--format", default="table", choices=["table", "json"])
-    parser.add_argument("--verbose", action="store_true")
+    parser = argparse.ArgumentParser(prog="alpha")
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--broker", default="moomoo", choices=["moomoo"])
+    common.add_argument("--account", default="paper", choices=["paper", "live"])
+    common.add_argument("--host", default="127.0.0.1")
+    common.add_argument("--port", type=int, default=11111)
+    common.add_argument("--market", default="US")
+    common.add_argument("--security-firm")
+    common.add_argument("--format", default="table", choices=["table", "json"])
+    common.add_argument("--verbose", action="store_true")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("account")
-    subparsers.add_parser("positions")
-    subparsers.add_parser("orders")
+    subparsers.add_parser("account", parents=[common])
+    subparsers.add_parser("positions", parents=[common])
+    subparsers.add_parser("orders", parents=[common])
 
-    option_quote = subparsers.add_parser("option-quote")
-    option_quote.add_argument("contract_code")
+    quote = subparsers.add_parser("quote", parents=[common])
+    quote.add_argument("--type", default="option", choices=["option"])
+    quote.add_argument("--contract", required=True)
 
-    option_chain = subparsers.add_parser("option-chain")
-    option_chain.add_argument("symbol")
+    chain = subparsers.add_parser("chain", parents=[common])
+    chain.add_argument("--type", default="option", choices=["option"])
+    chain.add_argument("--symbol", required=True)
 
-    order = subparsers.add_parser("place-option-order")
+    order = subparsers.add_parser("order", parents=[common])
+    order.add_argument("--type", required=True, choices=["option", "stock"])
     order.add_argument("--symbol", required=True)
-    order.add_argument("--contract-code", required=True)
-    order.add_argument("--side", required=True, choices=["BUY", "SELL"])
+    order.add_argument("--contract")
+    order.add_argument("--side", required=True, choices=["buy", "sell"])
     order.add_argument("--qty", required=True, type=int)
     order.add_argument("--limit", required=True, type=float)
     execution = order.add_mutually_exclusive_group(required=True)
     execution.add_argument("--dry-run", action="store_true", help="Only print the order plan.")
-    execution.add_argument("--submit", action="store_true", help="Submit the order to the selected env.")
+    execution.add_argument("--submit", action="store_true", help="Submit the order to the selected account.")
     order.add_argument(
         "--confirm-live-order",
         action="store_true",
-        help="Required with --submit when --env real.",
+        help="Required with --submit when --account live.",
     )
 
     return parser
 
 
 def broker_from_args(args: argparse.Namespace) -> MoomooOptionsBroker:
-    trade_env = "SIMULATE" if args.env in {"paper", "simulate"} else "REAL"
+    trade_env = "SIMULATE" if args.account == "paper" else "REAL"
     config = MoomooConfig(
         host=args.host,
         port=args.port,
@@ -166,24 +170,27 @@ def run_command(args: argparse.Namespace) -> Any:
         return broker.positions()
     if args.command == "orders":
         return broker.orders()
-    if args.command == "option-quote":
-        return broker.option_quote(args.contract_code)
-    if args.command == "option-chain":
+    if args.command == "quote":
+        return broker.option_quote(args.contract)
+    if args.command == "chain":
         return broker.option_chain(args.symbol)
-    if args.command == "place-option-order":
+    if args.command == "order":
+        if args.type == "stock":
+            raise UnsupportedOperation("stock orders are not implemented yet")
+        if not args.contract:
+            raise SystemExit("--contract is required for option orders")
         dry_run = args.dry_run
-        if args.env == "real" and args.submit and not args.confirm_live_order:
-            raise SystemExit("--confirm-live-order is required for real submitted orders")
+        if args.account == "live" and args.submit and not args.confirm_live_order:
+            raise SystemExit("--confirm-live-order is required for live submitted orders")
         order = OptionOrder(
             symbol=args.symbol,
-            contract_code=args.contract_code,
-            side=args.side,
+            contract_code=args.contract,
+            side=args.side.upper(),
             quantity=args.qty,
             limit_price=args.limit,
             dry_run=dry_run,
         )
         return broker.place_option_order(order)
-
     raise SystemExit(f"Unsupported command: {args.command}")
 
 

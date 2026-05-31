@@ -46,16 +46,18 @@ class CliTests(unittest.TestCase):
         parser = build_parser()
         args = parser.parse_args(
             [
+                "order",
                 "--broker",
                 "moomoo",
-                "place-option-order",
+                "--type",
+                "option",
                 "--dry-run",
                 "--symbol",
                 "AAPL",
-                "--contract-code",
+                "--contract",
                 "US.AAPL240621C200000",
                 "--side",
-                "BUY",
+                "buy",
                 "--qty",
                 "1",
                 "--limit",
@@ -72,17 +74,19 @@ class CliTests(unittest.TestCase):
         parser = build_parser()
         args = parser.parse_args(
             [
+                "order",
                 "--broker",
                 "moomoo",
-                "--env",
-                "real",
-                "place-option-order",
+                "--account",
+                "live",
+                "--type",
+                "option",
                 "--symbol",
                 "AAPL",
-                "--contract-code",
+                "--contract",
                 "US.AAPL240621C200000",
                 "--side",
-                "BUY",
+                "buy",
                 "--qty",
                 "1",
                 "--limit",
@@ -100,21 +104,67 @@ class CliTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             parser.parse_args(
                 [
+                    "order",
                     "--broker",
                     "moomoo",
-                    "place-option-order",
+                    "--type",
+                    "option",
                     "--symbol",
                     "AAPL",
-                    "--contract-code",
+                    "--contract",
                     "US.AAPL240621C200000",
                     "--side",
-                    "BUY",
+                    "buy",
                     "--qty",
                     "1",
                     "--limit",
                     "1.25",
                 ]
             )
+
+    def test_option_order_requires_contract(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "order",
+                "--type",
+                "option",
+                "--dry-run",
+                "--symbol",
+                "AAPL",
+                "--side",
+                "buy",
+                "--qty",
+                "1",
+                "--limit",
+                "1.25",
+            ]
+        )
+
+        with self.assertRaises(SystemExit):
+            run_command(args)
+
+    def test_stock_orders_are_not_implemented(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "order",
+                "--type",
+                "stock",
+                "--dry-run",
+                "--symbol",
+                "AAPL",
+                "--side",
+                "buy",
+                "--qty",
+                "1",
+                "--limit",
+                "200",
+            ]
+        )
+
+        with self.assertRaises(UnsupportedOperation):
+            run_command(args)
 
 
 class RobinhoodMcpBrokerTests(unittest.TestCase):
