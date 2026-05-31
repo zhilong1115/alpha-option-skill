@@ -70,34 +70,6 @@ class CliTests(unittest.TestCase):
         self.assertTrue(result.dry_run)
         self.assertTrue(result.accepted)
 
-    def test_real_order_requires_confirmation(self) -> None:
-        parser = build_parser()
-        args = parser.parse_args(
-            [
-                "order",
-                "--broker",
-                "moomoo",
-                "--account",
-                "live",
-                "--type",
-                "option",
-                "--symbol",
-                "AAPL",
-                "--contract",
-                "US.AAPL240621C200000",
-                "--side",
-                "buy",
-                "--qty",
-                "1",
-                "--limit",
-                "1.25",
-                "--submit",
-            ]
-        )
-
-        with self.assertRaises(SystemExit):
-            run_command(args)
-
     def test_order_requires_dry_run_or_submit(self) -> None:
         parser = build_parser()
 

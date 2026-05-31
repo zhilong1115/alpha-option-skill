@@ -53,11 +53,6 @@ def build_parser() -> argparse.ArgumentParser:
     execution = order.add_mutually_exclusive_group(required=True)
     execution.add_argument("--dry-run", action="store_true", help="Only print the order plan.")
     execution.add_argument("--submit", action="store_true", help="Submit the order to the selected account.")
-    order.add_argument(
-        "--confirm-live-order",
-        action="store_true",
-        help="Required with --submit when --account live.",
-    )
 
     return parser
 
@@ -180,8 +175,6 @@ def run_command(args: argparse.Namespace) -> Any:
         if not args.contract:
             raise SystemExit("--contract is required for option orders")
         dry_run = args.dry_run
-        if args.account == "live" and args.submit and not args.confirm_live_order:
-            raise SystemExit("--confirm-live-order is required for live submitted orders")
         order = OptionOrder(
             symbol=args.symbol,
             contract_code=args.contract,

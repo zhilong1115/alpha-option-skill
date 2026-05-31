@@ -74,7 +74,7 @@ python3.11 -m alpha_option_skill order --broker moomoo --account paper \
   --limit 1.25
 ```
 
-Submitted real orders require both `--submit` and `--confirm-live-order`.
+Submitted live orders use `--account live --submit`.
 
 ```bash
 python3.11 -m alpha_option_skill order --broker moomoo --account live \
@@ -84,6 +84,5 @@ python3.11 -m alpha_option_skill order --broker moomoo --account live \
   --contract US.AAPL240621C200000 \
   --side buy \
   --qty 1 \
-  --limit 1.25 \
-  --confirm-live-order
+  --limit 1.25
 ```
