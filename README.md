@@ -6,6 +6,7 @@ Alpha options trading skill research, trade planning, and broker connector scaff
 
 - Moomoo: primary options connector. The first implementation supports account, positions, option chain, option quote, order list, and single-leg option order submission through the official Moomoo OpenAPI SDK. Dry-run order planning works without installing the SDK.
 - Robinhood MCP: supports the official Agentic Trading MCP path for account, positions, orders, and stock order submission. Current public MCP support is long-equities only; options chain and options order methods intentionally raise `UnsupportedOperation`.
+- Robinhood account access is rolling out. If the OAuth page shows `Coming soon: Agentic trading`, the account is not enabled yet and live MCP reads/orders cannot run until Robinhood grants access.
 
 ## Safety Defaults
 
