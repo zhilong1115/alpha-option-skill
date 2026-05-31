@@ -1,5 +1,6 @@
 import unittest
 
+from alpha_option_skill.cli import build_parser, run_command
 from alpha_option_skill.brokers import (
     MoomooConfig,
     MoomooOptionsBroker,
@@ -38,6 +39,59 @@ class MoomooOptionsBrokerTests(unittest.TestCase):
 
     def test_default_market_is_us(self) -> None:
         self.assertEqual(MoomooConfig().market, "US")
+
+
+class CliTests(unittest.TestCase):
+    def test_dry_run_order_command_does_not_require_sdk(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "--broker",
+                "moomoo",
+                "place-option-order",
+                "--symbol",
+                "AAPL",
+                "--contract-code",
+                "US.AAPL240621C200000",
+                "--side",
+                "BUY",
+                "--qty",
+                "1",
+                "--limit",
+                "1.25",
+            ]
+        )
+
+        result = run_command(args)
+
+        self.assertTrue(result.dry_run)
+        self.assertTrue(result.accepted)
+
+    def test_real_order_requires_confirmation(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "--broker",
+                "moomoo",
+                "--env",
+                "real",
+                "place-option-order",
+                "--symbol",
+                "AAPL",
+                "--contract-code",
+                "US.AAPL240621C200000",
+                "--side",
+                "BUY",
+                "--qty",
+                "1",
+                "--limit",
+                "1.25",
+                "--no-dry-run",
+            ]
+        )
+
+        with self.assertRaises(SystemExit):
+            run_command(args)
 
 
 class RobinhoodMcpBrokerTests(unittest.TestCase):

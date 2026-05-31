@@ -14,6 +14,9 @@ dependencies = []
 moomoo = ["moomoo-api>=10.6.6608"]
 dev = []
 
+[project.scripts]
+alpha-option = "alpha_option_skill.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["alpha_option_skill*"]
