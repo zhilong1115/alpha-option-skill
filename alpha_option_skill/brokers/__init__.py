@@ -6,10 +6,11 @@ from alpha_option_skill.brokers.base import (
     BrokerError,
     OptionOrder,
     OrderResult,
+    StockOrder,
     UnsupportedOperation,
 )
 from alpha_option_skill.brokers.moomoo import MoomooConfig, MoomooOptionsBroker
-from alpha_option_skill.brokers.robinhood import RobinhoodMcpBroker
+from alpha_option_skill.brokers.robinhood import RobinhoodMcpBroker, RobinhoodMcpConfig
 
 __all__ = [
     "BrokerCapabilities",
@@ -20,5 +21,7 @@ __all__ = [
     "OptionOrder",
     "OrderResult",
     "RobinhoodMcpBroker",
+    "RobinhoodMcpConfig",
+    "StockOrder",
     "UnsupportedOperation",
 ]

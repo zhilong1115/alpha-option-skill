@@ -51,6 +51,24 @@ class OptionOrder:
 
 
 @dataclass(frozen=True)
+class StockOrder:
+    symbol: str
+    side: OrderSide
+    quantity: int
+    limit_price: float
+    dry_run: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.side not in ("BUY", "SELL"):
+            raise ValueError("side must be BUY or SELL")
+        if self.quantity <= 0:
+            raise ValueError("quantity must be positive")
+        if self.limit_price <= 0:
+            raise ValueError("limit_price must be positive")
+
+
+@dataclass(frozen=True)
 class OrderResult:
     broker: str
     dry_run: bool
@@ -81,4 +99,7 @@ class Broker(Protocol):
         ...
 
     def place_option_order(self, order: OptionOrder) -> OrderResult:
+        ...
+
+    def place_stock_order(self, order: StockOrder) -> OrderResult:
         ...

@@ -6,6 +6,7 @@ from alpha_option_skill.brokers import (
     MoomooOptionsBroker,
     OptionOrder,
     RobinhoodMcpBroker,
+    StockOrder,
     UnsupportedOperation,
 )
 
@@ -140,6 +141,21 @@ class CliTests(unittest.TestCase):
 
 
 class RobinhoodMcpBrokerTests(unittest.TestCase):
+    def test_stock_dry_run_does_not_require_mcp(self) -> None:
+        broker = RobinhoodMcpBroker()
+        result = broker.place_stock_order(
+            StockOrder(
+                symbol="AAPL",
+                side="BUY",
+                quantity=1,
+                limit_price=200,
+            )
+        )
+
+        self.assertTrue(result.accepted)
+        self.assertTrue(result.dry_run)
+        self.assertEqual(result.broker, "robinhood")
+
     def test_options_are_not_supported(self) -> None:
         broker = RobinhoodMcpBroker()
 
@@ -160,6 +176,56 @@ class RobinhoodMcpBrokerTests(unittest.TestCase):
         self.assertFalse(caps.options_orders)
         self.assertFalse(caps.options_chain)
         self.assertTrue(caps.equity_orders)
+
+    def test_cli_supports_robinhood_stock_dry_run(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "order",
+                "--broker",
+                "robinhood",
+                "--type",
+                "stock",
+                "--dry-run",
+                "--symbol",
+                "AAPL",
+                "--side",
+                "buy",
+                "--qty",
+                "1",
+                "--limit",
+                "200",
+            ]
+        )
+
+        result = run_command(args)
+
+        self.assertTrue(result.accepted)
+        self.assertTrue(result.dry_run)
+
+    def test_robinhood_submit_requires_live_account(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "order",
+                "--broker",
+                "robinhood",
+                "--type",
+                "stock",
+                "--submit",
+                "--symbol",
+                "AAPL",
+                "--side",
+                "buy",
+                "--qty",
+                "1",
+                "--limit",
+                "200",
+            ]
+        )
+
+        with self.assertRaises(UnsupportedOperation):
+            run_command(args)
 
 
 if __name__ == "__main__":

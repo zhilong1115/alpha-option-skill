@@ -11,9 +11,13 @@ from dataclasses import asdict, is_dataclass
 from typing import Any, Sequence
 
 from alpha_option_skill.brokers import (
+    BrokerError,
     MoomooConfig,
     MoomooOptionsBroker,
     OptionOrder,
+    RobinhoodMcpBroker,
+    RobinhoodMcpConfig,
+    StockOrder,
     UnsupportedOperation,
 )
 
@@ -21,11 +25,12 @@ from alpha_option_skill.brokers import (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="alpha")
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--broker", default="moomoo", choices=["moomoo"])
+    common.add_argument("--broker", default="moomoo", choices=["moomoo", "robinhood"])
     common.add_argument("--account", default="paper", choices=["paper", "live"])
     common.add_argument("--host", default="127.0.0.1")
     common.add_argument("--port", type=int, default=11111)
     common.add_argument("--market", default="US")
+    common.add_argument("--mcp-url", default=None)
     common.add_argument("--security-firm")
     common.add_argument("--format", default="table", choices=["table", "json"])
     common.add_argument("--verbose", action="store_true")
@@ -57,7 +62,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def broker_from_args(args: argparse.Namespace) -> MoomooOptionsBroker:
+def broker_from_args(args: argparse.Namespace) -> MoomooOptionsBroker | RobinhoodMcpBroker:
+    if args.broker == "robinhood":
+        return RobinhoodMcpBroker(RobinhoodMcpConfig.from_env(args.mcp_url))
+
     trade_env = "SIMULATE" if args.account == "paper" else "REAL"
     config = MoomooConfig(
         host=args.host,
@@ -159,6 +167,10 @@ def emit(value: Any, output_format: str) -> None:
 def run_command(args: argparse.Namespace) -> Any:
     broker = broker_from_args(args)
 
+    if args.broker == "robinhood" and args.command in {"account", "positions", "orders"}:
+        if args.account != "live":
+            raise UnsupportedOperation("Robinhood MCP has no paper account; use --account live.")
+
     if args.command == "account":
         return broker.account()
     if args.command == "positions":
@@ -171,9 +183,24 @@ def run_command(args: argparse.Namespace) -> Any:
         return broker.option_chain(args.symbol)
     if args.command == "order":
         if args.type == "stock":
-            raise UnsupportedOperation("stock orders are not implemented yet")
+            if args.broker != "robinhood":
+                raise UnsupportedOperation("stock orders are not implemented yet for this broker")
+            if args.submit and args.account != "live":
+                raise UnsupportedOperation(
+                    "Robinhood MCP has no paper trading; use --dry-run or --account live --submit."
+                )
+            order = StockOrder(
+                symbol=args.symbol,
+                side=args.side.upper(),
+                quantity=args.qty,
+                limit_price=args.limit,
+                dry_run=args.dry_run,
+            )
+            return broker.place_stock_order(order)
         if not args.contract:
             raise SystemExit("--contract is required for option orders")
+        if args.broker == "robinhood":
+            raise UnsupportedOperation("Robinhood MCP currently supports stock orders only, not options")
         dry_run = args.dry_run
         order = OptionOrder(
             symbol=args.symbol,
@@ -191,11 +218,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     logging.getLogger().setLevel(logging.ERROR)
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.verbose:
-        result = run_command(args)
-    else:
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+    try:
+        if args.verbose:
             result = run_command(args)
+        else:
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                result = run_command(args)
+    except BrokerError as exc:
+        parser.exit(2, f"error: {exc}\n")
     emit(result, args.format)
     return 0
 
