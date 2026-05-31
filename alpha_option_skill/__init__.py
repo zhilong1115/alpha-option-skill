@@ -1,3 +1,3 @@
 """Alpha options trading skill."""
 
-__all__ = ["brokers"]
+__all__ = ["brokers", "data"]

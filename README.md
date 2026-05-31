@@ -42,6 +42,49 @@ Default OpenD connection values:
 - port: `11111`
 - account: `paper` maps to Moomoo `SIMULATE`; `live` maps to Moomoo `REAL`
 
+## Data Layer
+
+The local data layer is a lightweight SQLite store for Alpha's market snapshots,
+option snapshots, sync history, and future strategy audit trail. It is not meant
+to copy an entire vendor warehouse. It stores the data Alpha actually used, so
+future decisions can be audited and compared across data sources.
+
+Default data sources:
+
+- `moomoo`: primary broker/data source through local OpenD.
+- `polygon`: secondary market-data source. Set `POLYGON_API_KEY` to enable live
+  Polygon sync; without a key the source is recorded as skipped instead of
+  breaking the command.
+
+Initialize the local database:
+
+```bash
+alpha data init --db alpha.db
+```
+
+Check counts:
+
+```bash
+alpha data status --db alpha.db
+```
+
+Sync both configured sources:
+
+```bash
+alpha data --broker moomoo --account live sync \
+  --db alpha.db \
+  --sources moomoo,polygon \
+  --symbols US.AAPL,US.NVDA \
+  --contracts US.AAPL240621C200000
+```
+
+For a first pass, keep this as a light local fact store:
+
+- stock snapshots in `equity_quotes`
+- option contract metadata in `option_contracts`
+- option snapshots/Greeks in `option_quotes`
+- sync audit rows in `sync_runs`
+
 ## CLI
 
 Run from the repo:

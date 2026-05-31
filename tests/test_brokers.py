@@ -1,4 +1,5 @@
 import unittest
+from tempfile import TemporaryDirectory
 
 from alpha_option_skill.cli import build_parser, run_command
 from alpha_option_skill.brokers import (
@@ -9,6 +10,9 @@ from alpha_option_skill.brokers import (
     StockOrder,
     UnsupportedOperation,
 )
+from alpha_option_skill.data.records import EquityQuote, OptionQuote
+from alpha_option_skill.data.sources import PolygonDataSource
+from alpha_option_skill.data.store import AlphaDataStore
 
 
 class MoomooOptionsBrokerTests(unittest.TestCase):
@@ -226,6 +230,75 @@ class RobinhoodMcpBrokerTests(unittest.TestCase):
 
         with self.assertRaises(UnsupportedOperation):
             run_command(args)
+
+
+class DataLayerTests(unittest.TestCase):
+    def test_store_initializes_and_records_quotes(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            store = AlphaDataStore(f"{temp_dir}/alpha.db")
+            store.init()
+
+            equity_count = store.insert_equity_quotes(
+                [
+                    EquityQuote(
+                        source="test",
+                        symbol="US.AAPL",
+                        bid=199.9,
+                        ask=200.1,
+                        last=200.0,
+                        volume=1000,
+                    )
+                ]
+            )
+            option_count = store.insert_option_quotes(
+                [
+                    OptionQuote(
+                        source="test",
+                        contract_code="US.AAPL240621C200000",
+                        underlying="US.AAPL",
+                        bid=1.2,
+                        ask=1.3,
+                        implied_volatility=0.35,
+                        delta=0.42,
+                    )
+                ]
+            )
+
+            self.assertEqual(equity_count, 1)
+            self.assertEqual(option_count, 1)
+            self.assertEqual(store.table_count("equity_quotes"), 1)
+            self.assertEqual(store.table_count("option_quotes"), 1)
+
+    def test_polygon_sync_skips_without_api_key(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            store = AlphaDataStore(f"{temp_dir}/alpha.db")
+            store.init()
+
+            result = PolygonDataSource().sync(store, ["AAPL"], [])
+
+            self.assertFalse(result.ok)
+            self.assertIn("POLYGON_API_KEY", result.message)
+
+    def test_polygon_normalizes_us_symbols(self) -> None:
+        source = PolygonDataSource()
+
+        self.assertEqual(source._ticker_symbol("US.AAPL"), "AAPL")
+        self.assertEqual(source._option_underlying("O:AAPL260717C00410000"), "AAPL")
+
+    def test_cli_data_init_and_status(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            db_path = f"{temp_dir}/alpha.db"
+            parser = build_parser()
+
+            init_args = parser.parse_args(["data", "init", "--db", db_path])
+            init_result = run_command(init_args)
+
+            status_args = parser.parse_args(["data", "status", "--db", db_path])
+            status_result = run_command(status_args)
+
+            self.assertEqual(init_result["status"], "initialized")
+            self.assertEqual(status_result["equity_quotes"], 0)
+            self.assertEqual(status_result["option_quotes"], 0)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,8 @@ from alpha_option_skill.brokers import (
     StockOrder,
     UnsupportedOperation,
 )
+from alpha_option_skill.data.sources import MoomooDataSource, PolygonDataSource
+from alpha_option_skill.data.store import AlphaDataStore
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,6 +60,34 @@ def build_parser() -> argparse.ArgumentParser:
     execution = order.add_mutually_exclusive_group(required=True)
     execution.add_argument("--dry-run", action="store_true", help="Only print the order plan.")
     execution.add_argument("--submit", action="store_true", help="Submit the order to the selected account.")
+
+    data = subparsers.add_parser("data", parents=[common])
+    data_subparsers = data.add_subparsers(dest="data_command", required=True)
+
+    data_init = data_subparsers.add_parser("init")
+    data_init.add_argument("--db", default="alpha.db")
+
+    data_status = data_subparsers.add_parser("status")
+    data_status.add_argument("--db", default="alpha.db")
+
+    data_sync = data_subparsers.add_parser("sync")
+    data_sync.add_argument("--db", default="alpha.db")
+    data_sync.add_argument(
+        "--sources",
+        default="moomoo,polygon",
+        help="Comma-separated data sources. Default: moomoo,polygon",
+    )
+    data_sync.add_argument(
+        "--symbols",
+        default="",
+        help="Comma-separated stock symbols, e.g. US.AAPL,US.NVDA for moomoo.",
+    )
+    data_sync.add_argument(
+        "--contracts",
+        default="",
+        help="Comma-separated option contract codes.",
+    )
+    data_sync.add_argument("--include-option-chains", action="store_true")
 
     return parser
 
@@ -165,6 +195,9 @@ def emit(value: Any, output_format: str) -> None:
 
 
 def run_command(args: argparse.Namespace) -> Any:
+    if args.command == "data":
+        return run_data_command(args)
+
     broker = broker_from_args(args)
 
     if args.broker == "robinhood" and args.command in {"account", "positions", "orders"}:
@@ -212,6 +245,51 @@ def run_command(args: argparse.Namespace) -> Any:
         )
         return broker.place_option_order(order)
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def _split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def run_data_command(args: argparse.Namespace) -> Any:
+    store = AlphaDataStore(args.db)
+    if args.data_command == "init":
+        store.init()
+        return {"db": str(store.path), "status": "initialized"}
+
+    if args.data_command == "status":
+        store.init()
+        return {
+            "db": str(store.path),
+            "equity_quotes": store.table_count("equity_quotes"),
+            "option_contracts": store.table_count("option_contracts"),
+            "option_quotes": store.table_count("option_quotes"),
+            "sync_runs": store.table_count("sync_runs"),
+        }
+
+    if args.data_command == "sync":
+        store.init()
+        symbols = _split_csv(args.symbols)
+        contracts = _split_csv(args.contracts)
+        results = []
+        for source in _split_csv(args.sources):
+            if source == "moomoo":
+                data_source = MoomooDataSource(broker_from_args(args))
+            elif source == "polygon":
+                data_source = PolygonDataSource()
+            else:
+                raise SystemExit(f"Unsupported data source: {source}")
+            result = data_source.sync(
+                store,
+                symbols=symbols,
+                option_contracts=contracts,
+                include_option_chains=args.include_option_chains,
+            )
+            store.record_sync_result(result)
+            results.append(result)
+        return results
+
+    raise SystemExit(f"Unsupported data command: {args.data_command}")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
