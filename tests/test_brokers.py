@@ -49,6 +49,7 @@ class CliTests(unittest.TestCase):
                 "--broker",
                 "moomoo",
                 "place-option-order",
+                "--dry-run",
                 "--symbol",
                 "AAPL",
                 "--contract-code",
@@ -86,12 +87,34 @@ class CliTests(unittest.TestCase):
                 "1",
                 "--limit",
                 "1.25",
-                "--no-dry-run",
+                "--submit",
             ]
         )
 
         with self.assertRaises(SystemExit):
             run_command(args)
+
+    def test_order_requires_dry_run_or_submit(self) -> None:
+        parser = build_parser()
+
+        with self.assertRaises(SystemExit):
+            parser.parse_args(
+                [
+                    "--broker",
+                    "moomoo",
+                    "place-option-order",
+                    "--symbol",
+                    "AAPL",
+                    "--contract-code",
+                    "US.AAPL240621C200000",
+                    "--side",
+                    "BUY",
+                    "--qty",
+                    "1",
+                    "--limit",
+                    "1.25",
+                ]
+            )
 
 
 class RobinhoodMcpBrokerTests(unittest.TestCase):

@@ -19,7 +19,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=11111)
     parser.add_argument("--market", default="US")
-    parser.add_argument("--env", default="simulate", choices=["simulate", "real"])
+    parser.add_argument(
+        "--env",
+        default="paper",
+        choices=["paper", "simulate", "real"],
+        help="Broker account environment: paper/simulate uses Moomoo SIMULATE; real uses REAL.",
+    )
     parser.add_argument("--security-firm")
     parser.add_argument("--format", default="table", choices=["table", "json"])
     parser.add_argument("--verbose", action="store_true")
@@ -41,22 +46,25 @@ def build_parser() -> argparse.ArgumentParser:
     order.add_argument("--side", required=True, choices=["BUY", "SELL"])
     order.add_argument("--qty", required=True, type=int)
     order.add_argument("--limit", required=True, type=float)
-    order.add_argument("--no-dry-run", action="store_true")
+    execution = order.add_mutually_exclusive_group(required=True)
+    execution.add_argument("--dry-run", action="store_true", help="Only print the order plan.")
+    execution.add_argument("--submit", action="store_true", help="Submit the order to the selected env.")
     order.add_argument(
         "--confirm-live-order",
         action="store_true",
-        help="Required with --no-dry-run when --env real.",
+        help="Required with --submit when --env real.",
     )
 
     return parser
 
 
 def broker_from_args(args: argparse.Namespace) -> MoomooOptionsBroker:
+    trade_env = "SIMULATE" if args.env in {"paper", "simulate"} else "REAL"
     config = MoomooConfig(
         host=args.host,
         port=args.port,
         market=args.market.upper(),
-        trade_env=args.env.upper(),
+        trade_env=trade_env,
         security_firm=args.security_firm,
     )
     return MoomooOptionsBroker(config)
@@ -163,9 +171,9 @@ def run_command(args: argparse.Namespace) -> Any:
     if args.command == "option-chain":
         return broker.option_chain(args.symbol)
     if args.command == "place-option-order":
-        dry_run = not args.no_dry_run
-        if args.env == "real" and not dry_run and not args.confirm_live_order:
-            raise SystemExit("--confirm-live-order is required for real non-dry-run orders")
+        dry_run = args.dry_run
+        if args.env == "real" and args.submit and not args.confirm_live_order:
+            raise SystemExit("--confirm-live-order is required for real submitted orders")
         order = OptionOrder(
             symbol=args.symbol,
             contract_code=args.contract_code,
