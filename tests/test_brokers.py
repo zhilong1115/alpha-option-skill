@@ -1,6 +1,7 @@
 import unittest
 
 from alpha_option_skill.brokers import (
+    MoomooConfig,
     MoomooOptionsBroker,
     OptionOrder,
     RobinhoodMcpBroker,
@@ -34,6 +35,9 @@ class MoomooOptionsBrokerTests(unittest.TestCase):
         self.assertTrue(caps.options_orders)
         self.assertTrue(caps.paper_trading)
         self.assertFalse(caps.multi_leg_options)
+
+    def test_default_market_is_us(self) -> None:
+        self.assertEqual(MoomooConfig().market, "US")
 
 
 class RobinhoodMcpBrokerTests(unittest.TestCase):

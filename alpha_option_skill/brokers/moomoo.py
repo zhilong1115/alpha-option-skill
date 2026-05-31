@@ -65,7 +65,11 @@ class MoomooOptionsBroker:
 
     def trade_context(self) -> Any:
         sdk = self._sdk()
-        kwargs: dict[str, Any] = {"host": self.config.host, "port": self.config.port}
+        kwargs: dict[str, Any] = {
+            "filter_trdmarket": getattr(sdk.TrdMarket, self.config.market),
+            "host": self.config.host,
+            "port": self.config.port,
+        }
         if self.config.security_firm:
             kwargs["security_firm"] = self.config.security_firm
         return sdk.OpenSecTradeContext(**kwargs)
