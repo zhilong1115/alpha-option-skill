@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-moomoo = ["moomoo>=9.0.0"]
+moomoo = ["moomoo-api>=10.6.6608"]
 dev = []
 
 [tool.setuptools.packages.find]

@@ -11,7 +11,7 @@ Alpha options trading skill research, trade planning, and broker connector scaff
 
 - `OptionOrder.dry_run` defaults to `True`.
 - Dry-run Moomoo orders never import the SDK, connect to OpenD, unlock trading, or submit live orders.
-- Live Moomoo orders require `dry_run=False`, the optional `moomoo` SDK, a running Moomoo OpenD process, and any live-trading unlock flow outside this connector.
+- Live Moomoo orders require `dry_run=False`, the optional `moomoo-api` SDK, a running Moomoo OpenD process, and any live-trading unlock flow outside this connector.
 - Multi-leg option orders are not marked supported until we confirm an atomic spread-order API.
 
 ## Development
@@ -25,6 +25,8 @@ Optional Moomoo SDK install:
 ```bash
 python3 -m pip install -e ".[moomoo]"
 ```
+
+The official PyPI package is `moomoo-api`; it imports as `moomoo` in Python.
 
 Default OpenD connection values:
 

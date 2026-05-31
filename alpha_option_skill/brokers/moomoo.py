@@ -49,7 +49,7 @@ class MoomooOptionsBroker:
             import moomoo  # type: ignore[import-not-found]
         except ImportError as exc:
             raise BrokerDependencyError(
-                "moomoo SDK is not installed. Install with: python -m pip install '.[moomoo]'"
+                "moomoo SDK is not installed. Install with: python -m pip install 'moomoo-api'"
             ) from exc
         return moomoo
 
