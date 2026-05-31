@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alpha-option-skill"
+version = "0.1.0"
+description = "Options trading research and broker connector scaffolding for Alpha."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+moomoo = ["moomoo>=9.0.0"]
+dev = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["alpha_option_skill*"]
