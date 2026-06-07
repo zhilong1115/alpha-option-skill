@@ -1,12 +1,15 @@
 import unittest
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from alpha_option_skill.cli import build_parser, run_command
 from alpha_option_skill.brokers import (
+    BrokerError,
     MoomooConfig,
     MoomooOptionsBroker,
     OptionOrder,
     RobinhoodMcpBroker,
+    RobinhoodMcpConfig,
     StockOrder,
     UnsupportedOperation,
 )
@@ -154,6 +157,30 @@ class CliTests(unittest.TestCase):
 
 
 class RobinhoodMcpBrokerTests(unittest.TestCase):
+    def test_current_robinhood_tool_names(self) -> None:
+        config = RobinhoodMcpBroker().config
+
+        self.assertEqual(config.account_tool, "get_accounts")
+        self.assertEqual(config.positions_tool, "get_equity_positions")
+        self.assertEqual(config.orders_tool, "get_equity_orders")
+        self.assertEqual(config.order_tool, "place_equity_order")
+
+    def test_positions_require_account_number(self) -> None:
+        with self.assertRaises(BrokerError):
+            RobinhoodMcpBroker().positions()
+
+    @patch.object(RobinhoodMcpBroker, "_call_mcp")
+    def test_positions_pass_account_number(self, call_mcp) -> None:
+        broker = RobinhoodMcpBroker(
+            RobinhoodMcpConfig(account_number="123456789")
+        )
+
+        broker.positions()
+
+        call_mcp.assert_called_once_with(
+            "get_equity_positions", {"account_number": "123456789"}
+        )
+
     def test_stock_dry_run_does_not_require_mcp(self) -> None:
         broker = RobinhoodMcpBroker()
         result = broker.place_stock_order(

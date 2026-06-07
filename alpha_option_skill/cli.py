@@ -34,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--market", default="US")
     common.add_argument("--currency", default="USD", choices=["USD", "HKD"])
     common.add_argument("--mcp-url", default=None)
+    common.add_argument("--account-number")
     common.add_argument("--security-firm")
     common.add_argument("--format", default="table", choices=["table", "json"])
     common.add_argument("--verbose", action="store_true")
@@ -95,7 +96,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def broker_from_args(args: argparse.Namespace) -> MoomooOptionsBroker | RobinhoodMcpBroker:
     if args.broker == "robinhood":
-        return RobinhoodMcpBroker(RobinhoodMcpConfig.from_env(args.mcp_url))
+        return RobinhoodMcpBroker(
+            RobinhoodMcpConfig.from_env(args.mcp_url, args.account_number)
+        )
 
     trade_env = "SIMULATE" if args.account == "paper" else "REAL"
     config = MoomooConfig(

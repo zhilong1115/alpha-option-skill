@@ -154,10 +154,12 @@ alpha order --broker robinhood \
 Robinhood live account reads and stock submit:
 
 ```bash
-alpha positions --broker robinhood --account live
 alpha account --broker robinhood --account live
-alpha orders --broker robinhood --account live
+alpha account --broker robinhood --account live --account-number ACCOUNT_NUMBER
+alpha positions --broker robinhood --account live --account-number ACCOUNT_NUMBER
+alpha orders --broker robinhood --account live --account-number ACCOUNT_NUMBER
 alpha order --broker robinhood --account live \
+  --account-number ACCOUNT_NUMBER \
   --type stock \
   --submit \
   --symbol AAPL \

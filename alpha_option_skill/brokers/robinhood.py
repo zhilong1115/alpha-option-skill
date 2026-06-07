@@ -30,20 +30,28 @@ DEFAULT_MCP_URL = "https://agent.robinhood.com/mcp/trading"
 @dataclass(frozen=True)
 class RobinhoodMcpConfig:
     server_url: str = DEFAULT_MCP_URL
-    account_tool: str = "get_account"
-    positions_tool: str = "get_positions"
-    orders_tool: str = "get_orders"
-    order_tool: str = "place_order"
+    account_number: str | None = None
+    account_tool: str = "get_accounts"
+    portfolio_tool: str = "get_portfolio"
+    positions_tool: str = "get_equity_positions"
+    orders_tool: str = "get_equity_orders"
+    order_tool: str = "place_equity_order"
     timeout_ms: int = 30000
 
     @classmethod
-    def from_env(cls, server_url: str | None = None) -> "RobinhoodMcpConfig":
+    def from_env(
+        cls,
+        server_url: str | None = None,
+        account_number: str | None = None,
+    ) -> "RobinhoodMcpConfig":
         return cls(
             server_url=server_url or os.getenv("ALPHA_ROBINHOOD_MCP_URL", DEFAULT_MCP_URL),
-            account_tool=os.getenv("ALPHA_ROBINHOOD_ACCOUNT_TOOL", "get_account"),
-            positions_tool=os.getenv("ALPHA_ROBINHOOD_POSITIONS_TOOL", "get_positions"),
-            orders_tool=os.getenv("ALPHA_ROBINHOOD_ORDERS_TOOL", "get_orders"),
-            order_tool=os.getenv("ALPHA_ROBINHOOD_ORDER_TOOL", "place_order"),
+            account_number=account_number or os.getenv("ALPHA_ROBINHOOD_ACCOUNT_NUMBER"),
+            account_tool=os.getenv("ALPHA_ROBINHOOD_ACCOUNT_TOOL", "get_accounts"),
+            portfolio_tool=os.getenv("ALPHA_ROBINHOOD_PORTFOLIO_TOOL", "get_portfolio"),
+            positions_tool=os.getenv("ALPHA_ROBINHOOD_POSITIONS_TOOL", "get_equity_positions"),
+            orders_tool=os.getenv("ALPHA_ROBINHOOD_ORDERS_TOOL", "get_equity_orders"),
+            order_tool=os.getenv("ALPHA_ROBINHOOD_ORDER_TOOL", "place_equity_order"),
             timeout_ms=int(os.getenv("ALPHA_ROBINHOOD_MCP_TIMEOUT_MS", "30000")),
         )
 
@@ -115,15 +123,28 @@ class RobinhoodMcpBroker:
         if not output:
             return {}
         try:
-            return json.loads(output)
+            result = json.loads(output)
         except json.JSONDecodeError:
             return output
+        if isinstance(result, dict) and result.get("error"):
+            raise BrokerError(f"Robinhood MCP tool '{tool}' failed: {result['error']}")
+        return result
+
+    def _account_args(self) -> dict[str, str]:
+        if not self.config.account_number:
+            raise BrokerError(
+                "Robinhood account number is required. Pass --account-number or set "
+                "ALPHA_ROBINHOOD_ACCOUNT_NUMBER."
+            )
+        return {"account_number": self.config.account_number}
 
     def account(self) -> Any:
+        if self.config.account_number:
+            return self._call_mcp(self.config.portfolio_tool, self._account_args())
         return self._call_mcp(self.config.account_tool)
 
     def positions(self) -> Any:
-        return self._call_mcp(self.config.positions_tool)
+        return self._call_mcp(self.config.positions_tool, self._account_args())
 
     def option_chain(self, symbol: str, **kwargs: Any) -> Any:
         raise UnsupportedOperation(
@@ -136,7 +157,7 @@ class RobinhoodMcpBroker:
         )
 
     def orders(self, **kwargs: Any) -> Any:
-        return self._call_mcp(self.config.orders_tool, kwargs)
+        return self._call_mcp(self.config.orders_tool, {**self._account_args(), **kwargs})
 
     def place_option_order(self, order: OptionOrder) -> OrderResult:
         raise UnsupportedOperation(
@@ -159,11 +180,12 @@ class RobinhoodMcpBroker:
         result = self._call_mcp(
             self.config.order_tool,
             {
+                **self._account_args(),
                 "symbol": order.symbol,
                 "side": order.side.lower(),
-                "quantity": order.quantity,
-                "order_type": "limit",
-                "limit_price": order.limit_price,
+                "quantity": str(order.quantity),
+                "type": "limit",
+                "limit_price": str(order.limit_price),
                 **order.metadata,
             },
         )
