@@ -1,0 +1,7 @@
+interface:
+  display_name: "Alpha Options Trading"
+  short_description: "Broker, options, market data, and order workflows"
+  default_prompt: "Use $alpha-options-trading to inspect my broker account and help plan a safe trade."
+
+policy:
+  allow_implicit_invocation: true

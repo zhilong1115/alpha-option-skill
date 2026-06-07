@@ -2,6 +2,11 @@
 
 Alpha options trading skill research, trade planning, and broker connector scaffolding.
 
+AI agents should read [`SKILL.md`](SKILL.md) for the operational workflow,
+authentication routing, privacy requirements, and live-order safety rules.
+Codex-compatible agents can discover it through `AGENTS.md`; Claude Code can
+discover it through `CLAUDE.md`.
+
 ## Broker Status
 
 - Moomoo: primary options connector. The first implementation supports account, positions, option chain, option quote, order list, and single-leg option order submission through the official Moomoo OpenAPI SDK. Dry-run order planning works without installing the SDK.
