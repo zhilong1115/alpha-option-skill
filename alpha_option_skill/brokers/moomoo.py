@@ -24,6 +24,7 @@ class MoomooConfig:
     port: int = 11111
     market: str = "US"
     trade_env: str = "SIMULATE"
+    currency: str = "USD"
     security_firm: str | None = None
 
 
@@ -77,13 +78,19 @@ class MoomooOptionsBroker:
     def account(self) -> Any:
         sdk = self._sdk()
         with self.trade_context() as ctx:
-            ret, data = ctx.accinfo_query(trd_env=getattr(sdk.TrdEnv, self.config.trade_env))
+            ret, data = ctx.accinfo_query(
+                trd_env=getattr(sdk.TrdEnv, self.config.trade_env),
+                currency=getattr(sdk.Currency, self.config.currency),
+            )
             return self._call_ok(ret, data, "account query")
 
     def positions(self) -> Any:
         sdk = self._sdk()
         with self.trade_context() as ctx:
-            ret, data = ctx.position_list_query(trd_env=getattr(sdk.TrdEnv, self.config.trade_env))
+            ret, data = ctx.position_list_query(
+                trd_env=getattr(sdk.TrdEnv, self.config.trade_env),
+                currency=getattr(sdk.Currency, self.config.currency),
+            )
             return self._call_ok(ret, data, "positions query")
 
     def orders(self, **kwargs: Any) -> Any:

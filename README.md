@@ -41,6 +41,7 @@ Default OpenD connection values:
 - host: `127.0.0.1`
 - port: `11111`
 - account: `paper` maps to Moomoo `SIMULATE`; `live` maps to Moomoo `REAL`
+- currency: `USD` by default; use `--currency HKD` when an HKD view is needed
 
 ## Data Layer
 

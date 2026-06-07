@@ -32,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--host", default="127.0.0.1")
     common.add_argument("--port", type=int, default=11111)
     common.add_argument("--market", default="US")
+    common.add_argument("--currency", default="USD", choices=["USD", "HKD"])
     common.add_argument("--mcp-url", default=None)
     common.add_argument("--security-firm")
     common.add_argument("--format", default="table", choices=["table", "json"])
@@ -102,6 +103,7 @@ def broker_from_args(args: argparse.Namespace) -> MoomooOptionsBroker | Robinhoo
         port=args.port,
         market=args.market.upper(),
         trade_env=trade_env,
+        currency=args.currency,
         security_firm=args.security_firm,
     )
     return MoomooOptionsBroker(config)

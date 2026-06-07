@@ -45,8 +45,17 @@ class MoomooOptionsBrokerTests(unittest.TestCase):
     def test_default_market_is_us(self) -> None:
         self.assertEqual(MoomooConfig().market, "US")
 
+    def test_default_currency_is_usd(self) -> None:
+        self.assertEqual(MoomooConfig().currency, "USD")
+
 
 class CliTests(unittest.TestCase):
+    def test_default_currency_is_usd(self) -> None:
+        parser = build_parser()
+        args = parser.parse_args(["account", "--broker", "moomoo", "--account", "live"])
+
+        self.assertEqual(args.currency, "USD")
+
     def test_dry_run_order_command_does_not_require_sdk(self) -> None:
         parser = build_parser()
         args = parser.parse_args(
